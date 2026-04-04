@@ -180,12 +180,22 @@ class AudioRecorderAndroid(private val context: Context) : AudioRecorder {
 
     override fun pauseRecording() {
         if (!isRecording || isPaused) return
+
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
+            throw UnsupportedOperationException("pause/resume requires API 24+ (Android 7.0+)")
+        }
+
         recorder?.pause()
         isPaused = true
     }
 
     override fun resumeRecording() {
         if (!isRecording || !isPaused) return
+
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
+            throw UnsupportedOperationException("pause/resume requires API 24+ (Android 7.0+)")
+        }
+
         recorder?.resume()
         isPaused = false
     }
