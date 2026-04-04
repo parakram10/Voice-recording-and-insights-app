@@ -54,9 +54,10 @@ import platform.Foundation.NSURL
  *
  * ## Error Handling & State Consistency
  * All methods throw exceptions on failure:
- * - [startRecording] throws if AVAudioRecorder setup fails; state unchanged on exception
+ * - [startRecording] throws if AVAudioRecorder initialization, prepareToRecord(), or record() fails;
+ *   NSError descriptions are included in the exception message; state and resources are cleaned up on exception
  * - [stopRecording] throws if stop/rename fails; state unchanged if stop() fails
- * - [pauseRecording]/[resumeRecording] throw if recorder is not in valid state
+ * - [pauseRecording]/[resumeRecording] are no-ops when the recorder is not in a valid state for that transition
  * - On any exception, recorder resources are safely cleaned up without clearing state
  *
  * ## State Management
@@ -129,22 +130,34 @@ class AudioRecorderIOS : AudioRecorder {
             val audioFileURL = documentsDirectory.URLByAppendingPathComponent(fileName)
             outputFile = audioFileURL
 
-            memScoped {
+            var initError: String? = null
+            recorder = memScoped {
                 val error = alloc<NSError?>()
-                recorder = AVAudioRecorder(
+                val rec = AVAudioRecorder(
                     URL = audioFileURL,
                     settings = audioSettings,
                     error = error.ptr
                 )
+                if (rec == null) {
+                    initError = error.value?.localizedDescription
+                }
+                rec
             }
 
             if (recorder == null) {
-                throw RuntimeException("Failed to initialize AVAudioRecorder")
+                throw RuntimeException(
+                    "Failed to initialize AVAudioRecorder: ${initError ?: "Unknown error"}"
+                )
             }
 
-            recorder?.apply {
-                prepareToRecord()
-                record()
+            val prepared = recorder?.prepareToRecord() ?: false
+            if (!prepared) {
+                throw RuntimeException("Failed to prepare AVAudioRecorder for recording")
+            }
+
+            val started = recorder?.record() ?: false
+            if (!started) {
+                throw RuntimeException("Failed to start recording")
             }
 
             isRecording = true
