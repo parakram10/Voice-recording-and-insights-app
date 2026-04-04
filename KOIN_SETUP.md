@@ -116,8 +116,12 @@ fun App() {
 - Android DI: `composeApp/src/androidMain/kotlin/org/example/project/di/`
 - iOS DI: `composeApp/src/iosMain/kotlin/org/example/project/di/`
 
+## Related Documentation
+- **[TIMESTAMP_FORMAT.md](TIMESTAMP_FORMAT.md)** - Audio file timestamps now include timezone information (e.g., `audio_20260405_143022_+0530.mp4`)
+
 ## Next Steps
 1. ✅ AudioRecorder registered and injectable
-2. Add more services (repositories, data sources) to modules
-3. Implement ViewModel integration for state management
-4. Add database or API services to the modules
+2. ✅ Timestamps include timezone information
+3. Add more services (repositories, data sources) to modules
+4. Implement ViewModel integration for state management
+5. Add database or API services to the modules

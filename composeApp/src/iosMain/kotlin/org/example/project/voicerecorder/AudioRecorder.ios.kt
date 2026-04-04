@@ -125,6 +125,7 @@ class AudioRecorderIOS : AudioRecorder {
 
         try {
             val timestamp = getCurrentTimestamp()
+            // Example filename: audio_20260405_143022_+0530.m4a (includes timezone)
             val fileName = "audio_$timestamp.m4a"
             val audioFileURL = documentsDirectory.URLByAppendingPathComponent(fileName)
             outputFile = audioFileURL

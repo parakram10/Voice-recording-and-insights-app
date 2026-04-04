@@ -115,7 +115,8 @@ class AudioRecorderAndroid(private val context: Context) : AudioRecorder {
                 createRecorder()
             }
 
-            // Create output file with timestamp
+            // Create output file with timestamp (includes timezone)
+            // Example filename: audio_20260405_143022_+0530.mp4
             val timestamp = getCurrentTimestamp()
             val outputDir = getOutputDirectory()
             val audioFile = File(outputDir, "audio_$timestamp.mp4")
