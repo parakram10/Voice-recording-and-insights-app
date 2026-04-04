@@ -1,16 +1,18 @@
 package org.example.project.voicerecorder
 
-actual class AudioRecorder {
-    actual fun startRecording() {
+import android.content.Context
+
+class AudioRecorderAndroid(private val context: Context) : AudioRecorder {
+    override fun startRecording() {
     }
 
-    actual fun stopRecording(fileName: String) {
+    override fun stopRecording(fileName: String) {
     }
 
-    actual fun pauseRecording() {
+    override fun pauseRecording() {
     }
 
-    actual fun isRecording(): Boolean {
+    override fun isRecording(): Boolean {
         TODO("Not yet implemented")
     }
 }
