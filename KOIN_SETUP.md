@@ -1,7 +1,7 @@
 # Koin Dependency Injection Setup
 
 ## Overview
-This project now uses Koin 3.5.6 for dependency injection across the Kotlin Multiplatform codebase. All current file dependencies (AudioRecorder, TimestampUtils) are registered and ready to use.
+This project now uses Koin 3.5.6 for dependency injection across the Kotlin Multiplatform codebase. `AudioRecorder` is registered in Koin and ready to inject, while `TimestampUtils` remains available as an `expect`/`actual` utility function outside the DI graph.
 
 ## Project Structure
 
