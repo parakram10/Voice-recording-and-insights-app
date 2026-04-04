@@ -2,13 +2,12 @@ package org.example.project
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.tooling.preview.Preview
 import org.example.project.ui.RecordingScreen
+import org.example.project.viewmodel.RecordingViewModel
 
 @Composable
-@Preview
-fun App() {
+fun App(viewModel: RecordingViewModel) {
     MaterialTheme {
-        RecordingScreen()
+        RecordingScreen(viewModel)
     }
 }

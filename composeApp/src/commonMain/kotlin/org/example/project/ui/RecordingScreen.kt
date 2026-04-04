@@ -28,7 +28,6 @@ import org.example.project.data.RecordingUiItem
 import org.example.project.data.TranscriptionUiState
 import org.example.project.util.getCurrentTimeMillis
 import org.example.project.viewmodel.RecordingViewModel
-import org.koin.compose.koinInject
 
 /**
  * Shared recording screen for RecordingScreen.
@@ -38,11 +37,11 @@ import org.koin.compose.koinInject
  * - List of saved recordings from database
  * - Recording status (PENDING, IN_PROGRESS, DONE, ERROR)
  *
- * Uses RecordingViewModel for state management (injected via Koin).
+ * Takes RecordingViewModel as parameter (injected by platform-specific entry points).
  * Platform-agnostic Compose code — works on both Android and iOS.
  */
 @Composable
-fun RecordingScreen(viewModel: RecordingViewModel = koinInject()) {
+fun RecordingScreen(viewModel: RecordingViewModel) {
     val uiState by viewModel.uiState.collectAsState()
 
     LazyColumn(
