@@ -14,7 +14,6 @@ import java.io.File
  * - Supports pause/resume on Android 7.0+ (API 24+) with automatic API level validation
  * - Automatic file naming with timestamps (e.g., `audio_20260405_143022.mp4`)
  * - Robust error handling with atomic state updates and safe resource cleanup
- * - Thread-safe state transitions for pause/resume
  *
  * ## Storage & Permissions
  * Files are saved to [Context.getExternalFilesDir], which:
@@ -181,12 +180,22 @@ class AudioRecorderAndroid(private val context: Context) : AudioRecorder {
 
     override fun pauseRecording() {
         if (!isRecording || isPaused) return
+
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
+            throw UnsupportedOperationException("pause/resume requires API 24+ (Android 7.0+)")
+        }
+
         recorder?.pause()
         isPaused = true
     }
 
     override fun resumeRecording() {
         if (!isRecording || !isPaused) return
+
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
+            throw UnsupportedOperationException("pause/resume requires API 24+ (Android 7.0+)")
+        }
+
         recorder?.resume()
         isPaused = false
     }
