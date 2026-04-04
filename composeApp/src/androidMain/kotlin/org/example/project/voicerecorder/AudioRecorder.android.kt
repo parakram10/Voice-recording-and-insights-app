@@ -4,8 +4,6 @@ import android.content.Context
 import android.media.MediaRecorder
 import android.os.Build
 import java.io.File
-import java.text.SimpleDateFormat
-import java.util.Locale
 
 /**
  * Android implementation of [AudioRecorder] for recording audio using the device microphone.
@@ -118,8 +116,7 @@ class AudioRecorderAndroid(private val context: Context) : AudioRecorder {
             }
 
             // Create output file with timestamp
-            val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US)
-                .format(System.currentTimeMillis())
+            val timestamp = getCurrentTimestamp()
             val outputDir = getOutputDirectory()
             val audioFile = File(outputDir, "audio_$timestamp.mp4")
             outputFile = audioFile
