@@ -4,8 +4,13 @@ package org.example.project.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import org.example.project.data.RecordingRepository
+import org.example.project.data.RecordingScreenUiState
 import org.example.project.voicerecorder.AudioRecorder
 
 /**
@@ -22,6 +27,26 @@ class RecordingViewModel(
     private val recordingRepository: RecordingRepository,
     private val audioRecorder: AudioRecorder
 ) : ViewModel() {
+
+    /**
+     * UI state for RecordingScreen.
+     * Exposes recordings list, loading state, and error messages.
+     */
+    val uiState: StateFlow<RecordingScreenUiState> = recordingRepository.getAllRecordings()
+        .map { recordings ->
+            RecordingScreenUiState(
+                recordings = recordings,
+                isRecording = false,
+                selectedTranscriptionItem = null,
+                errorMessage = null,
+                isLoading = false
+            )
+        }
+        .stateIn(
+            viewModelScope,
+            SharingStarted.Lazily,
+            RecordingScreenUiState()
+        )
 
     /**
      * Start recording audio.

@@ -65,3 +65,16 @@ data class RecordingUiItem(
     val createdAt: Long,
     val transcription: TranscriptionUiState
 )
+
+/**
+ * Root UI state for RecordingScreen.
+ * Combines the list of recordings and UI interaction state.
+ */
+@Serializable
+data class RecordingScreenUiState(
+    val recordings: List<RecordingUiItem> = emptyList(),           // All recordings (newest first)
+    val isRecording: Boolean = false,                               // Mic is actively recording
+    val selectedTranscriptionItem: RecordingUiItem? = null,         // Recording to show transcription for
+    val errorMessage: String? = null,                               // Top-level error (e.g., permission denied)
+    val isLoading: Boolean = false                                  // Loading initial data from DB
+)
