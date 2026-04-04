@@ -68,6 +68,20 @@ Acceptance criteria:
 - UI state updates on Main thread (automatic via Flow)
 ```
 
+**How to Update Progress Tracker**:
+
+After implementing each sub-phase:
+1. Go to the **Progress Tracker** section below (📊)
+2. Change `[ ]` to `[x]` for the completed phase
+3. Update the **Total Progress** counter at the bottom of the tracker
+
+Example: After implementing Phase 1.1:
+```markdown
+- [x] **1.1** — RecordingRepository Interface ✅ DONE
+```
+
+---
+
 **Which documents to reference when**:
 | Situation | Documents |
 |---|---|
@@ -130,6 +144,59 @@ Acceptance criteria:
 ---
 
 ## Implementation Phases (7 Total, 30 Sub-Phases)
+
+---
+
+## 📊 Progress Tracker (Mark Completed Phases)
+
+**Update this section as you complete each phase. Copy the checkbox state below and mark [x] when done.**
+
+### Phase 1: Data Layer (SQLDelight) — 5 Sub-Phases
+- [x] **1.1** — RecordingRepository Interface ✅ DONE
+- [ ] **1.2** — Recording.sqldelight Schema
+- [ ] **1.3** — RecordingRepositoryImpl (SQLDelight wrapper)
+- [ ] **1.4** — Gradle: Add SQLDelight deps + config
+- [ ] **1.5** — Koin: Register DB + Repository
+
+### Phase 2: ViewModel + UI State — 3 Sub-Phases
+- [x] **2.1** — RecordingUiState (UI state classes) ✅ DONE
+- [ ] **2.2** — RecordingViewModel (state management)
+- [ ] **2.3** — RecordingScreen (shared UI)
+
+### Phase 3: Whisper.cpp JNI (Android) — 6 Sub-Phases
+- [ ] **3.1** — CMakeLists.txt + vendor sources
+- [ ] **3.2** — whisper_jni.cpp (JNI bridge)
+- [ ] **3.3** — Wire CMake into build.gradle.kts
+- [ ] **3.4** — WhisperContext.kt (Kotlin wrapper)
+- [ ] **3.5** — AudioDecoder.kt (MP4 → 16kHz PCM)
+- [ ] **3.6** — ModelManager.kt + model asset
+
+### Phase 4: Transcription Orchestration — 3 Sub-Phases
+- [ ] **4.1** — TranscriptionHandler (background jobs)
+- [ ] **4.2** — Wire TranscriptionHandler into ViewModel
+- [ ] **4.3** — Crash recovery (recoverInterruptedTranscriptions)
+
+### Phase 5: UI Updates (Transcription Status) — 4 Sub-Phases
+- [ ] **5.1** — TranscriptionStatusRow (status indicator)
+- [ ] **5.2** — Wire into SavedFileItem card
+- [ ] **5.3** — TranscriptionDialog (view text)
+- [ ] **5.4** — Wire dialog into RecordingScreen
+
+### Phase 6: iOS Data Layer — 3 Sub-Phases
+- [ ] **6.1** — RecordingRepositoryIOS (JSON-based, if needed)
+- [ ] **6.2** — Koin iOS registration
+- [ ] **6.3** — Update iOS entry point
+
+### Phase 7: iOS Transcription (WhisperKit) — 5 Sub-Phases
+- [ ] **7.1** — TranscriptionBridge.swift (WhisperKit wrapper)
+- [ ] **7.2** — Kotlin/Native cinterop setup
+- [ ] **7.3** — AudioDecoderIOS.kt (M4A → 16kHz)
+- [ ] **7.4** — TranscriptionHandlerIOS
+- [ ] **7.5** — ModelManagerIOS + model asset
+
+**Total Progress: 2/30 completed (6.7%)**
+
+---
 
 ### Phase 1: Data Layer (SQLDelight) — 5 Sub-Phases
 
