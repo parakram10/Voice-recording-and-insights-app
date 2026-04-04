@@ -46,9 +46,6 @@ open class BaseActivity : ComponentActivity() {
     // Inject AudioRecorder from Koin
     protected val audioRecorder: AudioRecorder by inject()
 
-    // Inject AudioRecorder from Koin
-    protected val audioRecorder: AudioRecorder by inject()
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
     }

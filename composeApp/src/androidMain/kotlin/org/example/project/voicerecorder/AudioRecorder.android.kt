@@ -1,6 +1,7 @@
 package org.example.project.voicerecorder
 
 import android.content.Context
+import android.media.AudioManager
 import android.media.MediaRecorder
 import android.os.Build
 import java.io.File
@@ -13,6 +14,7 @@ import java.io.File
  * - Stores recordings in app's external files directory (persistent, user-accessible)
  * - Supports pause/resume on Android 7.0+ (API 24+) with automatic API level validation
  * - Automatic file naming with timestamps (e.g., `audio_20260405_143022.mp4`)
+ * - Requests audio focus (AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE) to pause device music during recording
  * - Robust error handling with atomic state updates and safe resource cleanup
  *
  * ## Storage & Permissions
@@ -76,8 +78,12 @@ class AudioRecorderAndroid(private val context: Context) : AudioRecorder {
     private var isRecording = false
     private var isPaused = false
     private var outputFile: File? = null
+    private val audioManager: AudioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
 
     private fun createRecorder() {
+        // Ensure any previous recorder is cleaned up
+        cleanup()
+
         try {
             recorder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 MediaRecorder(context)
@@ -86,6 +92,7 @@ class AudioRecorderAndroid(private val context: Context) : AudioRecorder {
             }
 
             recorder?.apply {
+                // setAudioSource must be called first on a newly created MediaRecorder
                 setAudioSource(MediaRecorder.AudioSource.MIC)
                 setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
                 setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
@@ -95,7 +102,7 @@ class AudioRecorderAndroid(private val context: Context) : AudioRecorder {
         } catch (e: Exception) {
             recorder?.release()
             recorder = null
-            throw e
+            throw IllegalStateException("Failed to initialize MediaRecorder: ${e.message}", e)
         }
     }
 
@@ -107,12 +114,13 @@ class AudioRecorderAndroid(private val context: Context) : AudioRecorder {
     }
 
     override fun startRecording() {
-        if (isRecording) return
+        if (isRecording) {
+            return
+        }
 
         try {
-            if (recorder == null) {
-                createRecorder()
-            }
+            // Always create a fresh recorder - MediaRecorder must be reinitialized for each session
+            createRecorder()
 
             // Create output file with timestamp (includes timezone)
             // Example filename: audio_20260405_143022_+0530.mp4
@@ -120,6 +128,13 @@ class AudioRecorderAndroid(private val context: Context) : AudioRecorder {
             val outputDir = getOutputDirectory()
             val audioFile = File(outputDir, "audio_$timestamp.mp4")
             outputFile = audioFile
+
+            // Request audio focus to pause other audio (e.g., music playback)
+            audioManager.requestAudioFocus(
+                null,
+                AudioManager.STREAM_VOICE_CALL,
+                AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE
+            )
 
             recorder?.apply {
                 setOutputFile(audioFile.absolutePath)
@@ -138,7 +153,9 @@ class AudioRecorderAndroid(private val context: Context) : AudioRecorder {
     }
 
     override fun stopRecording(fileName: String): String? {
-        if (!isRecording) return null
+        if (!isRecording) {
+            return null
+        }
 
         try {
             // Stop and release recorder - state cleared after stop() succeeds
@@ -149,6 +166,9 @@ class AudioRecorderAndroid(private val context: Context) : AudioRecorder {
             recorder = null
             isRecording = false
             isPaused = false
+
+            // Release audio focus to resume other audio playback
+            audioManager.abandonAudioFocus(null)
 
             var finalFile = outputFile
 
@@ -165,12 +185,19 @@ class AudioRecorderAndroid(private val context: Context) : AudioRecorder {
                 finalFile = newFile
             }
 
-            return finalFile?.absolutePath
+            val filePath = finalFile?.absolutePath
+            return filePath
         } catch (e: Exception) {
             // On failure, only release recorder without changing state
             // Caller can determine if recording is still in progress via isRecording()
             try {
                 recorder?.release()
+            } catch (ex: Exception) {
+                // Ignore cleanup errors
+            }
+            // Still release audio focus even if error occurred
+            try {
+                audioManager.abandonAudioFocus(null)
             } catch (ex: Exception) {
                 // Ignore cleanup errors
             }
@@ -210,6 +237,14 @@ class AudioRecorderAndroid(private val context: Context) : AudioRecorder {
         } catch (e: Exception) {
             // Ignore errors during cleanup
         }
+
+        // Release audio focus
+        try {
+            audioManager.abandonAudioFocus(null)
+        } catch (e: Exception) {
+            // Ignore errors during cleanup
+        }
+
         recorder = null
         isRecording = false
         isPaused = false
