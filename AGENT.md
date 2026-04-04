@@ -153,7 +153,7 @@ Example: After implementing Phase 1.1:
 
 ### Phase 1: Data Layer (SQLDelight) — 5 Sub-Phases
 - [x] **1.1** — RecordingRepository Interface ✅ DONE
-- [ ] **1.2** — Recording.sqldelight Schema
+- [x] **1.2** — Recording.sqldelight Schema ✅ DONE
 - [ ] **1.3** — RecordingRepositoryImpl (SQLDelight wrapper)
 - [ ] **1.4** — Gradle: Add SQLDelight deps + config
 - [ ] **1.5** — Koin: Register DB + Repository
@@ -194,7 +194,7 @@ Example: After implementing Phase 1.1:
 - [ ] **7.4** — TranscriptionHandlerIOS
 - [ ] **7.5** — ModelManagerIOS + model asset
 
-**Total Progress: 2/30 completed (6.7%)**
+**Total Progress: 3/30 completed (10%)**
 
 ---
 
