@@ -2,7 +2,6 @@ package org.example.project.ui
 
 import android.media.MediaPlayer
 import android.os.Build
-import android.util.Log
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -27,8 +26,6 @@ import androidx.compose.ui.unit.dp
 import org.example.project.BaseActivity
 import org.example.project.voicerecorder.AudioRecorder
 import java.io.File
-
-private const val TAG = "Hello"
 
 /**
  * Testing screen for audio recording functionality.
@@ -161,7 +158,6 @@ fun RecordingScreen(audioRecorder: AudioRecorder) {
                         isPaused.value = false
                         recordingStatus.value = "Recording started"
                     } catch (e: Exception) {
-                        Log.e(TAG, "Start recording error", e)
                         recordingStatus.value = "Error: ${e.message}"
                     }
                 },
@@ -184,7 +180,6 @@ fun RecordingScreen(audioRecorder: AudioRecorder) {
                             isPaused.value = true
                             recordingStatus.value = "Recording paused"
                         } catch (e: Exception) {
-                            Log.e(TAG, "Pause recording error", e)
                             recordingStatus.value = "Error: ${e.message}"
                         }
                     },
@@ -206,7 +201,6 @@ fun RecordingScreen(audioRecorder: AudioRecorder) {
                             isPaused.value = false
                             recordingStatus.value = "Recording resumed"
                         } catch (e: Exception) {
-                            Log.e(TAG, "Resume recording error", e)
                             recordingStatus.value = "Error: ${e.message}"
                         }
                     },
@@ -241,7 +235,6 @@ fun RecordingScreen(audioRecorder: AudioRecorder) {
                         // Refresh file list
                         loadSavedFiles(context, savedFiles)
                     } catch (e: Exception) {
-                        Log.e(TAG, "Stop recording error", e)
                         recordingStatus.value = "Error: ${e.message}"
                     }
                 },
@@ -302,7 +295,6 @@ fun RecordingScreen(audioRecorder: AudioRecorder) {
                     isPlaying = playingFile.value == file.absolutePath && isPlaying.value,
                     mediaPlayer = mediaPlayer.value,
                     onPlay = {
-                        Log.d(TAG, "Playing file: ${file.absolutePath}")
                         try {
                             // Stop any currently playing file
                             mediaPlayer.value?.apply {
@@ -324,18 +316,15 @@ fun RecordingScreen(audioRecorder: AudioRecorder) {
 
                             // Set completion listener
                             player.setOnCompletionListener {
-                                Log.d(TAG, "Playback completed: ${file.name}")
                                 isPlaying.value = false
                                 playingFile.value = null
                                 recordingStatus.value = "Playback completed"
                             }
                         } catch (e: Exception) {
-                            Log.e(TAG, "Error playing file", e)
                             recordingStatus.value = "Error: Cannot play file - ${e.message}"
                         }
                     },
                     onStop = {
-                        Log.d(TAG, "Stopping playback")
                         try {
                             mediaPlayer.value?.apply {
                                 stop()
@@ -346,11 +335,9 @@ fun RecordingScreen(audioRecorder: AudioRecorder) {
                             isPlaying.value = false
                             recordingStatus.value = "Playback stopped"
                         } catch (e: Exception) {
-                            Log.e(TAG, "Error stopping playback", e)
                         }
                     },
                     onDelete = {
-                        Log.d(TAG, "Deleting file: ${file.absolutePath}")
                         try {
                             // Stop playback if playing this file
                             if (playingFile.value == file.absolutePath) {
@@ -366,14 +353,12 @@ fun RecordingScreen(audioRecorder: AudioRecorder) {
                             // Delete file
                             val deleted = file.delete()
                             if (deleted) {
-                                Log.d(TAG, "File deleted successfully")
                                 loadSavedFiles(context, savedFiles)
                                 recordingStatus.value = "File deleted: ${file.name}"
                             } else {
                                 recordingStatus.value = "Failed to delete file"
                             }
                         } catch (e: Exception) {
-                            Log.e(TAG, "Error deleting file", e)
                             recordingStatus.value = "Error: ${e.message}"
                         }
                     }
@@ -447,7 +432,6 @@ fun SavedFileItem(
 }
 
 private fun loadSavedFiles(context: android.content.Context, savedFiles: androidx.compose.runtime.MutableState<List<File>>) {
-    Log.d(TAG, "loadSavedFiles: Scanning for saved audio files")
     try {
         val externalFilesDir = context.getExternalFilesDir(null)
         if (externalFilesDir != null && externalFilesDir.exists()) {
@@ -455,13 +439,10 @@ private fun loadSavedFiles(context: android.content.Context, savedFiles: android
                 file.isFile && (file.extension == "mp4" || file.extension == "m4a")
             }?.sortedByDescending { it.lastModified() } ?: emptyList()
 
-            Log.d(TAG, "loadSavedFiles: Found ${audioFiles.size} audio files")
             savedFiles.value = audioFiles
         } else {
-            Log.w(TAG, "loadSavedFiles: External files directory not available")
         }
     } catch (e: Exception) {
-        Log.e(TAG, "loadSavedFiles: Error scanning for files", e)
     }
 }
 
