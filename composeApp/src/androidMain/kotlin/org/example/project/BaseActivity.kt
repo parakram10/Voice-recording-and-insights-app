@@ -4,6 +4,8 @@ import android.Manifest
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
+import org.example.project.voicerecorder.AudioRecorder
+import org.koin.android.ext.android.inject
 
 open class BaseActivity : ComponentActivity() {
     private val permissionCallbacks = mutableMapOf<String, (Boolean) -> Unit>()
@@ -17,6 +19,9 @@ open class BaseActivity : ComponentActivity() {
 
     private var currentPermission: String = ""
 
+    // Inject AudioRecorder from Koin
+    protected val audioRecorder: AudioRecorder by inject()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
     }
@@ -29,9 +34,5 @@ open class BaseActivity : ComponentActivity() {
 
     fun requestRecordAudioPermission(callback: (Boolean) -> Unit) {
         requestPermission(Manifest.permission.RECORD_AUDIO, callback)
-    }
-
-    fun createAudioRecorder(): org.example.project.voicerecorder.AudioRecorderAndroid {
-        return org.example.project.voicerecorder.AudioRecorderAndroid(context = this)
     }
 }
