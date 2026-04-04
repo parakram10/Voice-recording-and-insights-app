@@ -14,7 +14,6 @@ import java.io.File
  * - Supports pause/resume on Android 7.0+ (API 24+) with automatic API level validation
  * - Automatic file naming with timestamps (e.g., `audio_20260405_143022.mp4`)
  * - Robust error handling with atomic state updates and safe resource cleanup
- * - Thread-safe state transitions for pause/resume
  *
  * ## Storage & Permissions
  * Files are saved to [Context.getExternalFilesDir], which:
