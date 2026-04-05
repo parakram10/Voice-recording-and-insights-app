@@ -1,19 +1,15 @@
 package org.example.project
 
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import org.example.project.ui.RecordingScreen
-import org.example.project.voicerecorder.AudioRecorder
+import org.example.project.viewmodel.RecordingViewModel
 import org.koin.compose.koinInject
 
 /**
- * Android-specific app entry point with recording testing UI.
- * Injects AudioRecorder from Koin and displays RecordingScreen for testing.
+ * Android-specific app entry point with recording UI.
+ * Injects RecordingViewModel from Koin and passes to common App composable.
  */
 @Composable
 fun AndroidApp() {
-    MaterialTheme {
-        val audioRecorder: AudioRecorder = koinInject()
-        RecordingScreen(audioRecorder)
-    }
+    val viewModel: RecordingViewModel = koinInject()
+    App(viewModel)
 }

@@ -1,0 +1,42 @@
+-- Phase 1.2 — Recording schema (shared SQLDelight, compiled to Android + iOS)
+
+CREATE TABLE recording (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    filePath TEXT NOT NULL,
+    fileName TEXT NOT NULL,
+    createdAt INTEGER NOT NULL,
+    durationMs INTEGER NOT NULL DEFAULT 0,
+    transcriptionText TEXT,
+    transcriptionStatus TEXT NOT NULL,
+    transcriptionError TEXT
+);
+
+-- Insert new recording with PENDING status
+insertRecording:
+INSERT INTO recording(filePath, fileName, createdAt, transcriptionStatus)
+VALUES (?, ?, ?, 'PENDING')
+RETURNING id;
+
+-- Update transcription status
+updateTranscriptionStatus:
+UPDATE recording SET transcriptionStatus = ? WHERE id = ?;
+
+-- Update with transcription result (DONE)
+updateTranscriptionResult:
+UPDATE recording SET transcriptionText = ?, transcriptionStatus = ? WHERE id = ?;
+
+-- Update with error
+updateTranscriptionError:
+UPDATE recording SET transcriptionError = ?, transcriptionStatus = ? WHERE id = ?;
+
+-- Get all recordings (newest first)
+getAllRecordings:
+SELECT * FROM recording ORDER BY createdAt DESC;
+
+-- Get single recording
+getRecordingById:
+SELECT * FROM recording WHERE id = ? LIMIT 1;
+
+-- Delete recording
+deleteRecording:
+DELETE FROM recording WHERE id = ?;

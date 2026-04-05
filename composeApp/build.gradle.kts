@@ -6,15 +6,12 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
+    alias(libs.plugins.sqldelight)
 }
 
 kotlin {
-    androidTarget {
-        compilerOptions {
-            jvmTarget.set(JvmTarget.JVM_11)
-        }
-    }
-    
+    androidTarget()
+
     listOf(
         iosArm64(),
         iosSimulatorArm64()
@@ -32,6 +29,7 @@ kotlin {
             implementation(libs.androidx.core.ktx)
             implementation(libs.koin.android)
             implementation(libs.koin.compose)
+            implementation(libs.sqldelight.android)
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)
@@ -43,6 +41,11 @@ kotlin {
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation(libs.koin.core)
+            implementation(libs.sqldelight.runtime)
+            implementation(libs.sqldelight.coroutines)
+        }
+        iosMain.dependencies {
+            implementation(libs.sqldelight.native)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -74,6 +77,16 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+    }
+}
+
+sqldelight {
+    databases {
+        create("AppDatabase") {
+            packageName = "org.example.project.data"
+            // Explicitly specify source directory for .sqldelight files
+            srcDirs.from(file("src/commonMain/sqldelight"))
+        }
     }
 }
 
