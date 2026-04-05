@@ -17,7 +17,8 @@ val androidModule = module {
     single<AudioRecorder> { AudioRecorderAndroid(androidContext()) }
 
     // SQLDelight database for Android
-    // NOTE: Using in-memory stub implementation (shared with iOS) pending actual SQLDelight driver integration
+    // NOTE: Using in-memory implementation with reactive Flow updates
+    // TODO: Replace with AndroidSqliteDriver once SQLDelight code generation is working with KMP
     single<AppDatabase> {
         InMemoryDatabase()
     }

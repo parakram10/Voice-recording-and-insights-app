@@ -87,19 +87,14 @@ class TranscriptionHandler(
                 val modelPath = modelManager.getModelPath(context)
 
                 // Step 4: Initialize Whisper context from model
+                val whisperContext = WhisperContext.initFromFile(modelPath)
+
+                // Step 5: Transcribe audio samples (may use Whisper's internal threading)
                 val text = try {
-                    val whisperContext = WhisperContext.initFromFile(modelPath)
-                    try {
-                        // Step 5: Transcribe audio samples (may use Whisper's internal threading)
-                        whisperContext.transcribe(audioSamples)
-                    } finally {
-                        // Always free native resources
-                        whisperContext.close()
-                    }
-                } catch (e: UnsatisfiedLinkError) {
-                    // Development/testing: Whisper native library not available
-                    // Generate placeholder transcription so app continues to work
-                    "[Placeholder transcription - Whisper.cpp native library not available. Build Phase 3.1-3.3 to enable real transcription.]"
+                    whisperContext.transcribe(audioSamples)
+                } finally {
+                    // Always free native resources
+                    whisperContext.close()
                 }
 
                 // Step 6: Persist transcription result to database

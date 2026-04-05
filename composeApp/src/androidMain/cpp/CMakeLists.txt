@@ -15,15 +15,10 @@ endif()
 # Build whisper.cpp as a static library
 add_library(whisper STATIC
     whisper.cpp
-    whisper.h
     ggml.c
-    ggml.h
     ggml-alloc.c
-    ggml-alloc.h
     ggml-backend.c
-    ggml-backend.h
     ggml-quants.c
-    ggml-quants.h
 )
 
 # Target properties for whisper library

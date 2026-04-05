@@ -1,19 +1,22 @@
-// Phase 1.3 — RecordingRepositoryImpl: SQLDelight-backed repository (shared for Android + iOS)
+// Phase 1.3 — RecordingRepositoryImpl: Database-backed repository (shared for Android + iOS)
 
 package org.example.project.data
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import org.example.project.util.getCurrentTimeMillis
 
 /**
- * Implementation wrapping SQLDelight database.
+ * Implementation wrapping the database (currently in-memory with Flow support).
  *
  * Converts database entities (Recording) to UI types (RecordingUiItem).
  * All database operations run on IO dispatcher to avoid blocking the main thread.
+ *
+ * NOTE: Currently uses in-memory database with reactive Flow updates.
+ * TODO: Replace with actual SQLDelight driver once code generation works with KMP.
  */
 class RecordingRepositoryImpl(private val database: AppDatabase) : RecordingRepository {
     private val queries = database.recordingQueries
@@ -22,11 +25,8 @@ class RecordingRepositoryImpl(private val database: AppDatabase) : RecordingRepo
         withContext(Dispatchers.IO) {
             val timestamp = getCurrentTimeMillis()
             queries.insertRecording(filePath, fileName, timestamp)
-            // Get the most recently inserted recording (by createdAt timestamp)
-            // This works because we just inserted with current timestamp
-            val allRecordings = queries.getAllRecordings().executeAsOne()
-            // getAllRecordings returns in DESC order by createdAt, so first = most recent
-            allRecordings.id
+            // Get the most recently inserted recording ID
+            queries.getAllRecordings().executeAsOne().id
         }
 
     override suspend fun markInProgress(id: Long) = withContext(Dispatchers.IO) {
@@ -42,22 +42,15 @@ class RecordingRepositoryImpl(private val database: AppDatabase) : RecordingRepo
     }
 
     override fun getAllRecordings(): Flow<List<RecordingUiItem>> {
-        // NOTE: Currently returns empty list (stub implementation).
-        // Will be connected to actual SQLDelight Flow once database driver is wired:
-        // return database.recordingQueries.getAllRecordings()
-        //     .asFlow()
-        //     .mapToList(Dispatchers.IO)
-        //     .map { records -> records.map { it.toUiItem() } }
-        return flowOf(emptyList())
+        // Get flow from database and map to UI items
+        @Suppress("UNCHECKED_CAST")
+        val recordingsFlow = queries.getAllRecordings().asFlow() as Flow<List<Recording>>
+        return recordingsFlow.map { records -> records.map { it.toUiItem() } }
     }
 
     override suspend fun getRecordingById(id: Long): RecordingUiItem? =
         withContext(Dispatchers.IO) {
-            // NOTE: Currently returns null (stub implementation).
-            // Will be connected to actual SQLDelight query once database driver is wired:
-            // return database.recordingQueries.getRecordingById(id)
-            //     .executeAsOneOrNull()?.toUiItem()
-            null
+            queries.getRecordingById(id).executeAsOneOrNull()?.toUiItem()
         }
 
     override suspend fun deleteRecording(id: Long) = withContext(Dispatchers.IO) {
@@ -65,7 +58,7 @@ class RecordingRepositoryImpl(private val database: AppDatabase) : RecordingRepo
     }
 
     /**
-     * Convert SQLDelight Recording entity to UI-friendly RecordingUiItem.
+     * Convert database Recording entity to UI-friendly RecordingUiItem.
      */
     private fun Recording.toUiItem(): RecordingUiItem = RecordingUiItem(
         id = id,

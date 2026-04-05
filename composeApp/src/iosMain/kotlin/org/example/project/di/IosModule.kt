@@ -14,7 +14,8 @@ val iosModule = module {
     single<AudioRecorder> { AudioRecorderIOS() }
 
     // SQLDelight database for iOS
-    // NOTE: Using in-memory stub implementation (shared with Android) pending actual SQLDelight driver integration
+    // NOTE: Using in-memory implementation with reactive Flow updates
+    // TODO: Replace with NativeSqliteDriver once SQLDelight code generation is working with KMP
     single<AppDatabase> {
         InMemoryDatabase()
     }
