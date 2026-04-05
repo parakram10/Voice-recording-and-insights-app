@@ -8,6 +8,7 @@ import org.example.project.data.RecordingQueries
 import org.example.project.voicerecorder.AudioRecorder
 import org.example.project.voicerecorder.AudioRecorderAndroid
 import org.example.project.transcription.TranscriptionHandler
+import org.example.project.transcription.TranscriptionOrchestrator
 import org.example.project.transcription.AudioDecoder
 import org.example.project.transcription.ModelManager
 import org.koin.android.ext.koin.androidContext
@@ -37,7 +38,7 @@ val androidModule = module {
     // Phase 4.1 — Transcription components (Android-specific)
     single { AudioDecoder }
     single { ModelManager }
-    single { TranscriptionHandler(androidContext(), get(), get(), get()) }
+    single<TranscriptionOrchestrator> { TranscriptionHandler(androidContext(), get(), get(), get()) }
 }
 
 private class EmptyQuery<T> : Query<T> {

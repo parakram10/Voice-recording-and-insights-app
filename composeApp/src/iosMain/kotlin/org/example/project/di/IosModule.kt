@@ -7,6 +7,8 @@ import org.example.project.data.Recording
 import org.example.project.data.RecordingQueries
 import org.example.project.voicerecorder.AudioRecorder
 import org.example.project.voicerecorder.AudioRecorderIOS
+import org.example.project.transcription.TranscriptionOrchestrator
+import org.example.project.transcription.TranscriptionOrchestratorStub
 import org.koin.dsl.module
 
 val iosModule = module {
@@ -29,6 +31,9 @@ val iosModule = module {
                 }
         }
     }
+
+    // Phase 4.2 — Transcription orchestrator (stub until Phase 7)
+    single<TranscriptionOrchestrator> { TranscriptionOrchestratorStub }
 }
 
 private class EmptyQuery<T> : Query<T> {

@@ -173,7 +173,7 @@ Example: After implementing Phase 1.1:
 
 ### Phase 4: Transcription Orchestration — 3 Sub-Phases
 - [x] **4.1** — TranscriptionHandler (background jobs) ✅ DONE
-- [ ] **4.2** — Wire TranscriptionHandler into ViewModel
+- [x] **4.2** — Wire TranscriptionHandler into ViewModel ✅ DONE
 - [ ] **4.3** — Crash recovery (recoverInterruptedTranscriptions)
 
 ### Phase 5: UI Updates (Transcription Status) — 4 Sub-Phases
@@ -194,7 +194,7 @@ Example: After implementing Phase 1.1:
 - [ ] **7.4** — TranscriptionHandlerIOS
 - [ ] **7.5** — ModelManagerIOS + model asset
 
-**Total Progress: 17/30 completed (57%)**
+**Total Progress: 18/30 completed (60%)**
 
 ---
 
