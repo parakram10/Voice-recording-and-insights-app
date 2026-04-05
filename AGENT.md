@@ -168,7 +168,7 @@ Example: After implementing Phase 1.1:
 - [x] **3.2** — whisper_jni.cpp (JNI bridge) ✅ DONE
 - [x] **3.3** — Wire CMake into build.gradle.kts ✅ DONE
 - [x] **3.4** — WhisperContext.kt (Kotlin wrapper) ✅ DONE
-- [ ] **3.5** — AudioDecoder.kt (MP4 → 16kHz PCM)
+- [x] **3.5** — AudioDecoder.kt (MP4 → 16kHz PCM) ✅ DONE
 - [ ] **3.6** — ModelManager.kt + model asset
 
 ### Phase 4: Transcription Orchestration — 3 Sub-Phases
@@ -194,7 +194,7 @@ Example: After implementing Phase 1.1:
 - [ ] **7.4** — TranscriptionHandlerIOS
 - [ ] **7.5** — ModelManagerIOS + model asset
 
-**Total Progress: 14/30 completed (47%)**
+**Total Progress: 15/30 completed (50%)**
 
 ---
 
