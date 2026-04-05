@@ -2,6 +2,8 @@
 
 package org.example.project.transcription
 
+import kotlin.jvm.JvmStatic
+
 /**
  * Phase 3.4 — WhisperContext
  *
@@ -9,13 +11,16 @@ package org.example.project.transcription
  * Manages the lifecycle of a Whisper transcription context and provides a clean API
  * for initializing the model, running transcription, and cleanup.
  *
- * **Thread-safety**: Context handles are not thread-safe. Create one context per thread.
+ * **Thread-safety**: NOT thread-safe. This class enforces single-thread ownership.
+ * Do NOT share instances across threads or call methods concurrently.
+ * Create one context per thread. Concurrent calls to [transcribe] and [close] will
+ * cause undefined behavior (JNI with freed handles, memory corruption).
  *
  * **Resource management**: Implements [AutoCloseable] for use with try-with-resources.
  * Always call [close] (directly or via try-with-resources) to prevent native memory leaks.
  */
 class WhisperContext private constructor(
-    @Volatile private var contextHandle: Long
+    private var contextHandle: Long
 ) : AutoCloseable {
     companion object {
         private val libraryLoaded = lazy {
@@ -46,7 +51,7 @@ class WhisperContext private constructor(
 
             ensureLibraryLoaded()
 
-            val handle = whisperInitFromFile(modelPath)
+            val handle = nativeWhisperInitFromFile(modelPath)
             if (handle == 0L) {
                 throw RuntimeException("Failed to initialize Whisper context from $modelPath")
             }
@@ -56,17 +61,27 @@ class WhisperContext private constructor(
 
         /**
          * JNI function declarations matching whisper_jni.cpp signatures:
-         * - Java_org_example_project_transcription_WhisperContext_whisperInitFromFile
-         * - Java_org_example_project_transcription_WhisperContext_whisperTranscribe
-         * - Java_org_example_project_transcription_WhisperContext_whisperFreeContext
+         * - Java_org_example_project_transcription_WhisperContext_nativeWhisperInitFromFile
+         * - Java_org_example_project_transcription_WhisperContext_nativeWhisperTranscribe
+         * - Java_org_example_project_transcription_WhisperContext_nativeWhisperFreeContext
+         *
+         * @JvmStatic ensures these map to WhisperContext (not WhisperContext$Companion) in JNI lookups
          */
-        private external fun whisperInitFromFile(modelPath: String): Long
-        private external fun whisperTranscribe(contextHandle: Long, audioSamples: FloatArray): String
-        private external fun whisperFreeContext(contextHandle: Long)
+        @JvmStatic
+        private external fun nativeWhisperInitFromFile(modelPath: String): Long
+
+        @JvmStatic
+        private external fun nativeWhisperTranscribe(contextHandle: Long, audioSamples: FloatArray): String
+
+        @JvmStatic
+        private external fun nativeWhisperFreeContext(contextHandle: Long)
     }
 
     /**
      * Run transcription on audio samples
+     *
+     * Must be called from the owning thread only. Concurrent calls to [transcribe] and [close]
+     * will cause race conditions and memory corruption.
      *
      * @param audioSamples Float array of PCM audio samples at 16kHz, normalized to [-1.0, 1.0]
      * @return Transcribed text
@@ -82,19 +97,21 @@ class WhisperContext private constructor(
             throw IllegalArgumentException("audioSamples cannot be empty")
         }
 
-        return Companion.whisperTranscribe(contextHandle, audioSamples)
+        return Companion.nativeWhisperTranscribe(contextHandle, audioSamples)
     }
 
     /**
      * Free the Whisper context and release all associated native memory.
      *
      * Safe to call multiple times (no-op on already-freed contexts).
+     * Must be called from the owning thread only. Do NOT call while [transcribe]
+     * may be executing on another thread — this causes race conditions and memory corruption.
      * Prefer using try-with-resources instead of calling directly.
      */
     override fun close() {
         if (contextHandle != 0L) {
             try {
-                Companion.whisperFreeContext(contextHandle)
+                Companion.nativeWhisperFreeContext(contextHandle)
             } catch (e: Exception) {
                 // Suppress native cleanup errors to allow safe resource cleanup
             } finally {

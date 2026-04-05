@@ -20,6 +20,7 @@ import java.io.IOException
 object ModelManager {
     private const val MODEL_FILENAME = "ggml-tiny.en-q5_1.bin"
     private const val ASSET_PATH = "models/$MODEL_FILENAME"
+    private const val EXPECTED_MODEL_SIZE = 32166155L  // ggml-tiny.en-q5_1.bin size in bytes
     private const val BUFFER_SIZE = 8192  // 8KB buffer for file copy
 
     private var modelPath: String? = null
@@ -72,8 +73,12 @@ object ModelManager {
                 throw IllegalStateException("Model file not found: ${modelFile.absolutePath}")
             }
 
-            if (modelFile.length() == 0L) {
-                throw IllegalStateException("Model file is empty: ${modelFile.absolutePath}")
+            val fileSize = modelFile.length()
+            if (fileSize != EXPECTED_MODEL_SIZE) {
+                throw IllegalStateException(
+                    "Model file size mismatch: expected $EXPECTED_MODEL_SIZE bytes, " +
+                    "got $fileSize bytes at ${modelFile.absolutePath}"
+                )
             }
 
             // Cache the path for future calls
