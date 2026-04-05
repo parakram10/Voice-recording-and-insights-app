@@ -18,6 +18,7 @@ import org.example.project.data.RecordingScreenUiState
 import org.example.project.data.TranscriptionUiState
 import org.example.project.voicerecorder.AudioRecorder
 import org.example.project.transcription.TranscriptionOrchestrator
+import org.example.project.util.FileSystemHelper
 
 /**
  * ViewModel for RecordingScreen.
@@ -34,6 +35,8 @@ class RecordingViewModel(
     private val audioRecorder: AudioRecorder,
     private val transcriptionOrchestrator: TranscriptionOrchestrator
 ) : ViewModel() {
+    // Guard flag to ensure crash recovery only runs once per ViewModel instance
+    private var recoveryRun = false
 
     /**
      * UI state for RecordingScreen.
@@ -64,21 +67,36 @@ class RecordingViewModel(
      *
      * This init block finds those recordings and re-enqueues them for transcription.
      * The TranscriptionHandler is idempotent, so re-enqueueing is safe.
+     *
+     * Guard flag ensures recovery only runs once per ViewModel instance to avoid wasting resources
+     * on screen rotation or other ViewModel recreation events.
      */
     init {
-        viewModelScope.launch {
-            // Get the first emission of recordings from Flow
-            val recordings = recordingRepository.getAllRecordings().first()
-
-            // Filter for PENDING and IN_PROGRESS items
-            val interruptedRecordings = recordings.filter { item ->
-                item.transcription is TranscriptionUiState.Pending ||
-                item.transcription is TranscriptionUiState.InProgress
+        viewModelScope.launch(Dispatchers.IO) {
+            // Guard flag: only run recovery once per ViewModel instance
+            if (recoveryRun) {
+                return@launch
             }
+            recoveryRun = true
 
-            // Re-enqueue each interrupted transcription
-            for (item in interruptedRecordings) {
-                transcriptionOrchestrator.enqueue(item.id, item.filePath)
+            try {
+                // Get the first emission of recordings from Flow
+                val recordings = recordingRepository.getAllRecordings().first()
+
+                // Filter for PENDING and IN_PROGRESS items, and validate file exists
+                val interruptedRecordings = recordings.filter { item ->
+                    (item.transcription is TranscriptionUiState.Pending ||
+                     item.transcription is TranscriptionUiState.InProgress) &&
+                    FileSystemHelper.fileExists(item.filePath)
+                }
+
+                // Re-enqueue each interrupted transcription
+                for (item in interruptedRecordings) {
+                    transcriptionOrchestrator.enqueue(item.id, item.filePath)
+                }
+            } catch (e: Exception) {
+                // Log error but don't crash — recovery is best-effort
+                e.printStackTrace()
             }
         }
     }
@@ -124,16 +142,25 @@ class RecordingViewModel(
      * 1. Stop the audio recorder (passes fileName to recorder, returns file path)
      * 2. Insert recording into database with PENDING status
      * 3. Auto-trigger transcriptionOrchestrator.enqueue() to start background transcription
+     *
+     * Error handling: Catches database insert errors and logs them. If database insert fails,
+     * transcription is not enqueued and user should be notified to retry.
      */
     fun stopRecording(fileName: String) {
         viewModelScope.launch {
             val filePath = audioRecorder.stopRecording(fileName)
             if (filePath != null) {
-                val recordingId = withContext(Dispatchers.IO) {
-                    recordingRepository.insertRecording(filePath, fileName)
+                try {
+                    val recordingId = withContext(Dispatchers.IO) {
+                        recordingRepository.insertRecording(filePath, fileName)
+                    }
+                    // Phase 4.2: Auto-trigger transcription
+                    transcriptionOrchestrator.enqueue(recordingId, filePath)
+                } catch (e: Exception) {
+                    // Database insert failed — log error and don't enqueue transcription
+                    // User should be shown error message to try again
+                    e.printStackTrace()
                 }
-                // Phase 4.2: Auto-trigger transcription
-                transcriptionOrchestrator.enqueue(recordingId, filePath)
             }
         }
     }
@@ -176,6 +203,19 @@ class RecordingViewModel(
                 transcriptionOrchestrator.enqueue(id, recording.filePath)
             }
         }
+    }
+
+    /**
+     * Phase 4.4 — Cancel a transcription in progress
+     *
+     * Called when user taps cancel button on in-progress transcription.
+     * Cancels the background transcription job.
+     * Recording will be marked as ERROR with "Cancelled" message.
+     *
+     * @param recordingId ID of the recording to cancel
+     */
+    fun cancelTranscription(recordingId: Long) {
+        transcriptionOrchestrator.cancel(recordingId)
     }
 
     /**

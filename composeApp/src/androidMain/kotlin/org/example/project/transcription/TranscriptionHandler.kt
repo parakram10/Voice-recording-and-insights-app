@@ -3,6 +3,7 @@
 package org.example.project.transcription
 
 import android.content.Context
+import android.util.Log
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -36,6 +37,10 @@ class TranscriptionHandler(
     private val audioDecoder: AudioDecoder,
     private val modelManager: ModelManager
 ) : TranscriptionOrchestrator {
+    companion object {
+        private const val TAG = "TranscriptionHandler"
+    }
+
     // Own scope: SupervisorJob ensures one failure doesn't cancel other transcriptions
     // IO dispatcher: suitable for file I/O (audio decode, model load) and repo operations
     // Note: Whisper.cpp may spawn its own threads, but we decode/persist on IO thread
@@ -69,8 +74,11 @@ class TranscriptionHandler(
     override fun enqueue(recordingId: Long, filePath: String) {
         // If transcription already running for this recordingId, return early (idempotent)
         if (activeJobs.containsKey(recordingId)) {
+            Log.i(TAG, "Transcription already running for recording $recordingId")
             return
         }
+
+        Log.i(TAG, "Enqueueing transcription for recording $recordingId")
 
         // Launch background coroutine in custom scope
         val job = scope.launch {
@@ -99,10 +107,12 @@ class TranscriptionHandler(
 
                 // Step 6: Persist transcription result to database
                 repository.markDone(recordingId, text)
+                Log.i(TAG, "Transcription completed for recording $recordingId")
 
             } catch (e: CancellationException) {
                 // Job was cancelled (e.g., user tapped cancel button or app was backgrounded)
                 // Mark recording as ERROR with "Cancelled" message
+                Log.i(TAG, "Transcription cancelled for recording $recordingId")
                 repository.markError(recordingId, "Cancelled")
                 // Must rethrow CancellationException per Kotlin coroutine spec
                 throw e
@@ -111,6 +121,7 @@ class TranscriptionHandler(
                 // Any other exception: decode error, model not found, whisper failed, etc.
                 // Mark recording as ERROR with user-facing error message
                 val errorMessage = e.message ?: "Unknown transcription error"
+                Log.e(TAG, "Transcription failed for recording $recordingId: $errorMessage", e)
                 repository.markError(recordingId, errorMessage)
                 // Don't rethrow — job ends gracefully; will be logged if needed
             } finally {
@@ -127,14 +138,18 @@ class TranscriptionHandler(
     /**
      * Phase 4.1 — Cancel a transcription in progress
      *
-     * If transcription is running, cancels the coroutine and removes it from tracking.
+     * If transcription is running, cancels the coroutine.
      * Recording will be marked as ERROR with "Cancelled" message.
+     *
+     * Note: Don't remove from activeJobs here — let the finally block in enqueue() handle cleanup.
+     * This prevents race conditions where a new job could be removed by the old job's finally block.
      *
      * @param recordingId Recording ID
      */
     override fun cancel(recordingId: Long) {
+        Log.i(TAG, "Cancelling transcription for recording $recordingId")
         activeJobs[recordingId]?.cancel()
-        activeJobs.remove(recordingId)
+        // Don't remove here — let finally block in enqueue() clean up
     }
 
     /**
