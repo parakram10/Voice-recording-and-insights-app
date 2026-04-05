@@ -9,9 +9,12 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
 import org.example.project.data.RecordingRepository
 import org.example.project.data.RecordingScreenUiState
 import org.example.project.voicerecorder.AudioRecorder
+import org.example.project.transcription.TranscriptionOrchestrator
 
 /**
  * ViewModel for RecordingScreen.
@@ -25,7 +28,8 @@ import org.example.project.voicerecorder.AudioRecorder
  */
 class RecordingViewModel(
     private val recordingRepository: RecordingRepository,
-    private val audioRecorder: AudioRecorder
+    private val audioRecorder: AudioRecorder,
+    private val transcriptionOrchestrator: TranscriptionOrchestrator
 ) : ViewModel() {
 
     /**
@@ -66,16 +70,17 @@ class RecordingViewModel(
      * Steps:
      * 1. Stop the audio recorder (passes fileName to recorder, returns file path)
      * 2. Insert recording into database with PENDING status
-     * 3. (Phase 4.2: Will auto-trigger transcriptionHandler.enqueue())
+     * 3. Auto-trigger transcriptionOrchestrator.enqueue() to start background transcription
      */
     fun stopRecording(fileName: String) {
         viewModelScope.launch {
             val filePath = audioRecorder.stopRecording(fileName)
             if (filePath != null) {
-                val recordingId = recordingRepository.insertRecording(filePath, fileName)
-                // Phase 4.2: Will call transcriptionHandler.enqueue(recordingId)
-                // For now, recording is in PENDING status and will be processed when
-                // TranscriptionHandler is implemented in Phase 4
+                val recordingId = withContext(Dispatchers.IO) {
+                    recordingRepository.insertRecording(filePath, fileName)
+                }
+                // Phase 4.2: Auto-trigger transcription
+                transcriptionOrchestrator.enqueue(recordingId, filePath)
             }
         }
     }
@@ -104,15 +109,19 @@ class RecordingViewModel(
      *
      * Called when user taps Retry button on error state.
      * Steps:
-     * 1. Mark recording as PENDING
-     * 2. Phase 4.2: Re-enqueue in TranscriptionHandler
+     * 1. Get the recording and its file path from database
+     * 2. Re-enqueue in transcription orchestrator
+     * 3. Transcription will run in background and update UI when done
      */
     fun retryTranscription(id: Long) {
         viewModelScope.launch {
-            recordingRepository.markInProgress(id)
-            // Phase 4.2: Will call transcriptionHandler.enqueue(id)
-            // Once TranscriptionHandler is implemented, it will pick up
-            // recordings marked as IN_PROGRESS on startup
+            val recording = withContext(Dispatchers.IO) {
+                recordingRepository.getRecordingById(id)
+            }
+            if (recording != null) {
+                // Re-enqueue transcription; will update DB when done
+                transcriptionOrchestrator.enqueue(id, recording.filePath)
+            }
         }
     }
 
@@ -128,5 +137,16 @@ class RecordingViewModel(
             // For now, recording will fail if permission is not granted
             // UI layer will handle showing permission denied message
         }
+    }
+
+    /**
+     * Phase 4.2 — Cleanup on ViewModel destruction
+     *
+     * Called when ViewModel is cleared (screen navigated away, app backgrounded, etc.).
+     * Ensures all background transcription jobs are cancelled and resources freed.
+     */
+    override fun onCleared() {
+        super.onCleared()
+        transcriptionOrchestrator.destroy()
     }
 }

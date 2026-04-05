@@ -80,8 +80,8 @@ object AudioDecoder {
                 // Normalize to [-1.0, 1.0]
                 val floatSamples = normalizeToFloat(resampledSamples)
 
-                return floatSamples
-            } finally {
+                codec.release()
+            return floatSamples} finally {
                 codec.release()
             }
 
