@@ -177,10 +177,10 @@ Example: After implementing Phase 1.1:
 - [x] **4.3** — Crash recovery (recoverInterruptedTranscriptions) ✅ DONE
 
 ### Phase 5: UI Updates (Transcription Status) — 4 Sub-Phases
-- [ ] **5.1** — TranscriptionStatusRow (status indicator)
-- [ ] **5.2** — Wire into SavedFileItem card
-- [ ] **5.3** — TranscriptionDialog (view text)
-- [ ] **5.4** — Wire dialog into RecordingScreen
+- [x] **5.1** — TranscriptionStatusRow (status indicator) ✅ DONE
+- [x] **5.2** — Wire into SavedFileItem card ✅ DONE
+- [x] **5.3** — TranscriptionDialog (view text) ✅ DONE
+- [x] **5.4** — Wire dialog into RecordingScreen ✅ DONE
 
 ### Phase 6: iOS Data Layer — 3 Sub-Phases
 - [ ] **6.1** — RecordingRepositoryIOS (JSON-based, if needed)
@@ -194,7 +194,7 @@ Example: After implementing Phase 1.1:
 - [ ] **7.4** — TranscriptionHandlerIOS
 - [ ] **7.5** — ModelManagerIOS + model asset
 
-**Total Progress: 19/30 completed (63%)**
+**Total Progress: 23/30 completed (77%)**
 
 ---
 

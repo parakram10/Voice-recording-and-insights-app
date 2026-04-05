@@ -96,6 +96,28 @@ class RecordingViewModel(
     }
 
     /**
+     * Pause recording (Android 7.0+ only).
+     *
+     * No-op on older Android versions or unsupported platforms.
+     */
+    fun pauseRecording() {
+        viewModelScope.launch {
+            audioRecorder.pauseRecording()
+        }
+    }
+
+    /**
+     * Resume recording (Android 7.0+ only).
+     *
+     * No-op on older Android versions or unsupported platforms.
+     */
+    fun resumeRecording() {
+        viewModelScope.launch {
+            audioRecorder.resumeRecording()
+        }
+    }
+
+    /**
      * Stop recording and persist to database with PENDING status.
      *
      * Steps:

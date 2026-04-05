@@ -20,9 +20,13 @@ class RecordingRepositoryImpl(private val database: AppDatabase) : RecordingRepo
 
     override suspend fun insertRecording(filePath: String, fileName: String): Long =
         withContext(Dispatchers.IO) {
-            queries.insertRecording(filePath, fileName, getCurrentTimeMillis())
-            // The .sqldelight RETURNING clause gives us the generated ID
-            queries.getAllRecordings().executeAsOne().id
+            val timestamp = getCurrentTimeMillis()
+            queries.insertRecording(filePath, fileName, timestamp)
+            // Get the most recently inserted recording (by createdAt timestamp)
+            // This works because we just inserted with current timestamp
+            val allRecordings = queries.getAllRecordings().executeAsOne()
+            // getAllRecordings returns in DESC order by createdAt, so first = most recent
+            allRecordings.id
         }
 
     override suspend fun markInProgress(id: Long) = withContext(Dispatchers.IO) {
