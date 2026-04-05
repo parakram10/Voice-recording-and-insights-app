@@ -8,11 +8,14 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
 import org.example.project.data.RecordingRepository
 import org.example.project.data.RecordingScreenUiState
+import org.example.project.data.TranscriptionUiState
 import org.example.project.voicerecorder.AudioRecorder
 import org.example.project.transcription.TranscriptionOrchestrator
 
@@ -51,6 +54,34 @@ class RecordingViewModel(
             SharingStarted.Lazily,
             RecordingScreenUiState()
         )
+
+    /**
+     * Phase 4.3 — Recover interrupted transcriptions on app startup
+     *
+     * When the app restarts, some recordings may be left in:
+     * - PENDING: Inserted to DB but transcription never started (app killed between insert & enqueue)
+     * - IN_PROGRESS: Transcription was running when app was killed
+     *
+     * This init block finds those recordings and re-enqueues them for transcription.
+     * The TranscriptionHandler is idempotent, so re-enqueueing is safe.
+     */
+    init {
+        viewModelScope.launch {
+            // Get the first emission of recordings from Flow
+            val recordings = recordingRepository.getAllRecordings().first()
+
+            // Filter for PENDING and IN_PROGRESS items
+            val interruptedRecordings = recordings.filter { item ->
+                item.transcription is TranscriptionUiState.Pending ||
+                item.transcription is TranscriptionUiState.InProgress
+            }
+
+            // Re-enqueue each interrupted transcription
+            for (item in interruptedRecordings) {
+                transcriptionOrchestrator.enqueue(item.id, item.filePath)
+            }
+        }
+    }
 
     /**
      * Start recording audio.
