@@ -164,9 +164,9 @@ Example: After implementing Phase 1.1:
 - [x] **2.3** — RecordingScreen (shared UI) ✅ DONE
 
 ### Phase 3: Whisper.cpp JNI (Android) — 6 Sub-Phases
-- [ ] **3.1** — CMakeLists.txt + vendor sources
-- [ ] **3.2** — whisper_jni.cpp (JNI bridge)
-- [ ] **3.3** — Wire CMake into build.gradle.kts
+- [x] **3.1** — CMakeLists.txt + vendor sources ✅ DONE
+- [x] **3.2** — whisper_jni.cpp (JNI bridge) ✅ DONE
+- [x] **3.3** — Wire CMake into build.gradle.kts ✅ DONE
 - [ ] **3.4** — WhisperContext.kt (Kotlin wrapper)
 - [ ] **3.5** — AudioDecoder.kt (MP4 → 16kHz PCM)
 - [ ] **3.6** — ModelManager.kt + model asset
@@ -194,7 +194,7 @@ Example: After implementing Phase 1.1:
 - [ ] **7.4** — TranscriptionHandlerIOS
 - [ ] **7.5** — ModelManagerIOS + model asset
 
-**Total Progress: 9/30 completed (30%)**
+**Total Progress: 12/30 completed (40%)**
 
 ---
 
