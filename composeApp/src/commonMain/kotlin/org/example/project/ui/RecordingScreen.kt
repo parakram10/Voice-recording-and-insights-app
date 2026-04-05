@@ -2,6 +2,9 @@
 
 package org.example.project.ui
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -9,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
@@ -21,6 +25,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -41,8 +48,19 @@ import org.example.project.viewmodel.RecordingViewModel
  * Platform-agnostic Compose code — works on both Android and iOS.
  */
 @Composable
-fun RecordingScreen(viewModel: RecordingViewModel) {
+fun RecordingScreen(
+    viewModel: RecordingViewModel,
+    onRequestRecordPermission: ((callback: (Boolean) -> Unit) -> Unit)? = null,
+    onPermissionDenied: (() -> Unit)? = null
+) {
     val uiState by viewModel.uiState.collectAsState()
+
+    // Phase 5.4: State for selected transcription to show in dialog
+    var selectedTranscriptionItem by remember { mutableStateOf<RecordingUiItem?>(null) }
+
+    // Recording state indicator
+    var isRecording by remember { mutableStateOf(false) }
+    var isPaused by remember { mutableStateOf(false) }
 
     LazyColumn(
         modifier = Modifier
@@ -61,7 +79,17 @@ fun RecordingScreen(viewModel: RecordingViewModel) {
         // Recording Controls Section
         item {
             Column {
-                RecordingControlsSection(viewModel)
+                RecordingControlsSection(
+                    viewModel = viewModel,
+                    isRecording = isRecording,
+                    isPaused = isPaused,
+                    onRecordingStateChange = { recording, paused ->
+                        isRecording = recording
+                        isPaused = paused
+                    },
+                    onRequestRecordPermission = onRequestRecordPermission,
+                    onPermissionDenied = onPermissionDenied
+                )
                 Spacer(modifier = Modifier.height(24.dp))
             }
         }
@@ -81,7 +109,11 @@ fun RecordingScreen(viewModel: RecordingViewModel) {
                 SavedRecordingItem(
                     recording = recording,
                     onDelete = { viewModel.deleteRecording(recording.id) },
-                    onRetry = { viewModel.retryTranscription(recording.id) }
+                    onRetry = { viewModel.retryTranscription(recording.id) },
+                    onViewTranscription = {
+                        // Phase 5.4: Show transcription dialog with selected recording
+                        selectedTranscriptionItem = recording
+                    }
                 )
             }
         } else {
@@ -95,55 +127,149 @@ fun RecordingScreen(viewModel: RecordingViewModel) {
             }
         }
     }
+
+    // Phase 5.4: Show transcription dialog when a recording is selected
+    if (selectedTranscriptionItem != null) {
+        val item = selectedTranscriptionItem!!
+        if (item.transcription is TranscriptionUiState.Done) {
+            TranscriptionDialog(
+                text = item.transcription.text,
+                onDismiss = { selectedTranscriptionItem = null }
+            )
+        }
+    }
 }
 
 /**
- * Recording control buttons (start/stop).
+ * Recording control buttons (start/stop/pause/resume).
+ * Shows recording indicator and pause/resume buttons when recording is active.
+ * Requests RECORD_AUDIO permission before starting recording on Android.
  */
 @Composable
-private fun RecordingControlsSection(viewModel: RecordingViewModel) {
+private fun RecordingControlsSection(
+    viewModel: RecordingViewModel,
+    isRecording: Boolean,
+    isPaused: Boolean,
+    onRecordingStateChange: (isRecording: Boolean, isPaused: Boolean) -> Unit,
+    onRequestRecordPermission: ((callback: (Boolean) -> Unit) -> Unit)? = null,
+    onPermissionDenied: (() -> Unit)? = null
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
+            containerColor = if (isRecording) MaterialTheme.colorScheme.errorContainer
+                            else MaterialTheme.colorScheme.surfaceVariant
         )
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Button(
-                onClick = { viewModel.startRecording() },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 8.dp)
-            ) {
-                Text("🎤 Start Recording")
+            // Recording status indicator
+            if (isRecording) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    // Recording indicator (red dot)
+                    Box(
+                        modifier = Modifier
+                            .width(12.dp)
+                            .height(12.dp)
+                            .background(
+                                color = MaterialTheme.colorScheme.error,
+                                shape = androidx.compose.foundation.shape.CircleShape
+                            )
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = if (isPaused) "⏸ RECORDING PAUSED" else "● RECORDING",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
             }
 
-            Button(
-                onClick = { viewModel.stopRecording("recording_${getCurrentTimeMillis()}.mp4") },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("⏹️ Stop Recording")
+            if (isRecording) {
+                // Show pause/resume and stop buttons during recording
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(
+                        onClick = {
+                            if (isPaused) {
+                                viewModel.resumeRecording()
+                                onRecordingStateChange(true, false)
+                            } else {
+                                viewModel.pauseRecording()
+                                onRecordingStateChange(true, true)
+                            }
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(if (isPaused) "▶ Resume" else "⏸ Pause")
+                    }
+
+                    Button(
+                        onClick = {
+                            viewModel.stopRecording("recording_${getCurrentTimeMillis()}.mp4")
+                            onRecordingStateChange(false, false)
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("⏹️ Stop")
+                    }
+                }
+            } else {
+                // Show start button when not recording
+                Button(
+                    onClick = {
+                        if (onRequestRecordPermission != null) {
+                            // Android: request permission before recording
+                            onRequestRecordPermission { isGranted ->
+                                if (isGranted) {
+                                    viewModel.startRecording()
+                                    onRecordingStateChange(true, false)
+                                } else {
+                                    onPermissionDenied?.invoke()
+                                }
+                            }
+                        } else {
+                            // iOS or other platforms without permission system
+                            viewModel.startRecording()
+                            onRecordingStateChange(true, false)
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("🎤 Start Recording")
+                }
             }
         }
     }
 }
 
 /**
- * Single recording item displaying:
+ * Phase 5.2 — Single recording item displaying:
  * - File name
- * - Transcription status (Pending, In Progress, Done, Error)
+ * - Transcription status (via TranscriptionStatusRow component)
  * - Delete button
- * - Retry button (if error)
- * - View transcription button (if done)
+ *
+ * @param recording The recording to display
+ * @param onDelete Callback when Delete button is clicked
+ * @param onRetry Callback when Retry button is clicked (Error state)
+ * @param onViewTranscription Callback when View Transcription button is clicked (Done state)
  */
 @Composable
 private fun SavedRecordingItem(
     recording: RecordingUiItem,
     onDelete: () -> Unit,
-    onRetry: () -> Unit
+    onRetry: () -> Unit,
+    onViewTranscription: () -> Unit = {}
 ) {
     Card(
         modifier = Modifier
@@ -153,81 +279,38 @@ private fun SavedRecordingItem(
             containerColor = MaterialTheme.colorScheme.secondaryContainer
         )
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(12.dp)
         ) {
-            Column(
+            // Header row: file name + delete button
+            Row(
                 modifier = Modifier
-                    .weight(1f)
-                    .padding(end = 8.dp)
+                    .fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 // File name
                 Text(
                     text = recording.fileName,
                     style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(bottom = 4.dp)
+                    modifier = Modifier.weight(1f)
                 )
 
-                // Transcription status
-                when (val state = recording.transcription) {
-                    is TranscriptionUiState.Pending -> {
-                        Text(
-                            text = "⏳ Pending transcription",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer
-                        )
-                    }
-                    is TranscriptionUiState.InProgress -> {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            CircularProgressIndicator(
-                                modifier = Modifier
-                                    .padding(end = 8.dp)
-                                    .height(16.dp),
-                                strokeWidth = 2.dp
-                            )
-                            Text(
-                                text = "Transcribing...",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-                    is TranscriptionUiState.Done -> {
-                        Text(
-                            text = "✅ Transcribed",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer
-                        )
-                    }
-                    is TranscriptionUiState.Error -> {
-                        Text(
-                            text = "❌ Error: ${state.message}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.error
-                        )
-                    }
+                // Delete button
+                TextButton(onClick = onDelete) {
+                    Text("Delete")
                 }
             }
 
-            // Action buttons
-            if (recording.transcription is TranscriptionUiState.Error) {
-                TextButton(onClick = onRetry, modifier = Modifier.padding(end = 4.dp)) {
-                    Text("Retry")
-                }
-            }
-
-            if (recording.transcription is TranscriptionUiState.Done) {
-                TextButton(onClick = { /* Phase 5.4: Show transcription dialog */ }, modifier = Modifier.padding(end = 4.dp)) {
-                    Text("View")
-                }
-            }
-
-            TextButton(onClick = onDelete) {
-                Text("Delete")
-            }
+            // Phase 5.2: Transcription status component
+            TranscriptionStatusRow(
+                transcriptionState = recording.transcription,
+                onRetry = onRetry,
+                onViewTranscription = onViewTranscription,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 }

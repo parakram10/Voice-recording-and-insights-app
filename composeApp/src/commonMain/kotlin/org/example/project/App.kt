@@ -6,8 +6,16 @@ import org.example.project.ui.RecordingScreen
 import org.example.project.viewmodel.RecordingViewModel
 
 @Composable
-fun App(viewModel: RecordingViewModel) {
+fun App(
+    viewModel: RecordingViewModel,
+    onRequestRecordPermission: ((callback: (Boolean) -> Unit) -> Unit)? = null,
+    onPermissionDenied: (() -> Unit)? = null
+) {
     MaterialTheme {
-        RecordingScreen(viewModel)
+        RecordingScreen(
+            viewModel = viewModel,
+            onRequestRecordPermission = onRequestRecordPermission,
+            onPermissionDenied = onPermissionDenied
+        )
     }
 }

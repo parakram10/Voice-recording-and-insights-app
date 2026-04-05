@@ -23,9 +23,9 @@ extern "C" {
      *          Returns 0 on failure
      */
     JNIEXPORT jlong JNICALL
-    Java_org_example_project_transcription_WhisperContext_whisperInitFromFile(
+    Java_org_example_project_transcription_WhisperContext_nativeWhisperInitFromFile(
         JNIEnv *env,
-        jobject obj,
+        jclass clazz,
         jstring modelPath) {
 
         if (!modelPath) {
@@ -72,9 +72,9 @@ extern "C" {
      *          Returns empty string on failure
      */
     JNIEXPORT jstring JNICALL
-    Java_org_example_project_transcription_WhisperContext_whisperTranscribe(
+    Java_org_example_project_transcription_WhisperContext_nativeWhisperTranscribe(
         JNIEnv *env,
-        jobject obj,
+        jclass clazz,
         jlong contextHandle,
         jfloatArray audioSamples) {
 
@@ -151,9 +151,9 @@ extern "C" {
      * @param contextHandle: Opaque handle from whisperInitFromFile
      */
     JNIEXPORT void JNICALL
-    Java_org_example_project_transcription_WhisperContext_whisperFreeContext(
+    Java_org_example_project_transcription_WhisperContext_nativeWhisperFreeContext(
         JNIEnv *env,
-        jobject obj,
+        jclass clazz,
         jlong contextHandle) {
 
         if (contextHandle == 0) {
