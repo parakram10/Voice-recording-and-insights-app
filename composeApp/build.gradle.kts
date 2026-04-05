@@ -63,6 +63,11 @@ android {
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1
         versionName = "1.0"
+
+        // Phase 3.3 — NDK ABI filters: build for 64-bit ARM (primary) and 32-bit ARM (fallback)
+        ndk {
+            abiFilters.addAll(listOf("arm64-v8a", "armeabi-v7a"))
+        }
     }
     packaging {
         resources {
@@ -78,6 +83,15 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+
+    // Phase 3.3 — External C++ native build configuration for whisper.cpp JNI
+    externalNativeBuild {
+        cmake {
+            path = file("src/androidMain/cpp/CMakeLists.txt")
+            version = "3.22.1"
+        }
+    }
+
 }
 
 sqldelight {
