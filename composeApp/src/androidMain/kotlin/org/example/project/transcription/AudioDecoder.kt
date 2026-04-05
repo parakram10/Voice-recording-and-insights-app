@@ -6,6 +6,7 @@ import android.media.MediaCodec
 import android.media.MediaExtractor
 import android.media.MediaFormat
 import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import java.nio.ShortBuffer
 import kotlin.math.min
 
@@ -56,30 +57,33 @@ object AudioDecoder {
             codec.configure(audioFormat, null, null, 0)
             codec.start()
 
-            // Decode audio to PCM short samples
-            val shortSamples = decodeToPcm(extractor, codec)
-            val sourceSampleRate = audioFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE)
-            val channelCount = audioFormat.getInteger(MediaFormat.KEY_CHANNEL_COUNT)
+            try {
+                // Decode audio to PCM short samples
+                val shortSamples = decodeToPcm(extractor, codec)
+                val sourceSampleRate = audioFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE)
+                val channelCount = audioFormat.getInteger(MediaFormat.KEY_CHANNEL_COUNT)
 
-            // Convert short samples to mono float array
-            val monoSamples = if (channelCount > 1) {
-                shortSamples.downSampleToMono(channelCount)
-            } else {
-                shortSamples
+                // Convert short samples to mono float array
+                val monoSamples = if (channelCount > 1) {
+                    shortSamples.downSampleToMono(channelCount)
+                } else {
+                    shortSamples
+                }
+
+                // Resample to 16kHz if needed
+                val resampledSamples = if (sourceSampleRate != SAMPLE_RATE_16KHZ) {
+                    resampleLinear(monoSamples, sourceSampleRate, SAMPLE_RATE_16KHZ)
+                } else {
+                    monoSamples
+                }
+
+                // Normalize to [-1.0, 1.0]
+                val floatSamples = normalizeToFloat(resampledSamples)
+
+                return floatSamples
+            } finally {
+                codec.release()
             }
-
-            // Resample to 16kHz if needed
-            val resampledSamples = if (sourceSampleRate != SAMPLE_RATE_16KHZ) {
-                resampleLinear(monoSamples, sourceSampleRate, SAMPLE_RATE_16KHZ)
-            } else {
-                monoSamples
-            }
-
-            // Normalize to [-1.0, 1.0]
-            val floatSamples = normalizeToFloat(resampledSamples)
-
-            codec.release()
-            return floatSamples
 
         } finally {
             extractor.release()
@@ -140,6 +144,13 @@ object AudioDecoder {
                     val outputBuffer = codec.getOutputBuffer(outputIndex)
                         ?: continue
 
+                    // Set position and limit according to bufferInfo offset and size
+                    outputBuffer.position(bufferInfo.offset)
+                    outputBuffer.limit(bufferInfo.offset + bufferInfo.size)
+
+                    // Ensure LITTLE_ENDIAN byte order for PCM audio
+                    outputBuffer.order(ByteOrder.LITTLE_ENDIAN)
+
                     val samples = ShortArray(bufferInfo.size / 2)
                     outputBuffer.asShortBuffer().get(samples)
                     decodedSamples.addAll(samples.asIterable())
@@ -173,10 +184,11 @@ object AudioDecoder {
 
         for (i in indices step channelCount) {
             var sum = 0
-            for (j in 0 until min(channelCount, size - i)) {
+            val sampleCount = min(channelCount, size - i)
+            for (j in 0 until sampleCount) {
                 sum += this[i + j].toInt()
             }
-            val avgSample = (sum / channelCount).toShort()
+            val avgSample = (sum / sampleCount).toShort()
             monoSamples.add(avgSample)
         }
 
